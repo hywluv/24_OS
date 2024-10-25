@@ -1,9 +1,15 @@
     .extern start_kernel
+    .extern mm_init
+    .extern task_init
+    .extern dummy
     .section .text.init
     .globl _start
 _start:
     #implement
     la sp, boot_stack_top # initialize stack
+
+    call mm_init
+    call task_init
 
     la t0, _traps # load traps
     csrw stvec, t0 # set traps

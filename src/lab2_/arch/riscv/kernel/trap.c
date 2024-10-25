@@ -3,6 +3,8 @@
 
 extern void clock_set_next_event();
 extern uint64_t get_cycles();
+extern void do_timer();
+extern void dummy();
 
 void trap_handler(uint64_t scause, uint64_t sepc) {
     // 通过 `scause` 判断 trap 类型
@@ -17,9 +19,8 @@ void trap_handler(uint64_t scause, uint64_t sepc) {
         uint64_t interrupt_t = scause & 0xFF;
         if (interrupt_t == 0x5) {
             // timer interrupt
-            uint64_t time = get_cycles()/10000000;
-            printk("timer interrupt. time in OS: %ld\n", time);
             clock_set_next_event();
+            do_timer();
         } else{
             // other interrupt
             printk("Unkown interrupt: scause = 0x%lx, sepc = 0x%lx\n", scause, sepc);

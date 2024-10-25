@@ -4,11 +4,11 @@
 #include "stdlib.h"
 #include "printk.h"
 
-extern void __dummy();
-
 struct task_struct *idle;           // idle process
 struct task_struct *current;        // 指向当前运行线程的 task_struct
 struct task_struct *task[NR_TASKS]; // 线程数组，所有的线程都保存在此
+
+extern void __dummy();
 
 void task_init() {
     srand(2024);
@@ -20,6 +20,13 @@ void task_init() {
     // 5. 将 current 和 task[0] 指向 idle
 
     /* YOUR CODE HERE */
+    idle = (struct task_struct *)kalloc();
+    idle->state = TASK_RUNNING;
+    idle->counter = 0;
+    idle->priority = 0;
+    idle->pid = 0;
+    current = idle;
+    task[0] = idle;
 
     // 1. 参考 idle 的设置，为 task[1] ~ task[NR_TASKS - 1] 进行初始化
     // 2. 其中每个线程的 state 为 TASK_RUNNING, 此外，counter 和 priority 进行如下赋值：
@@ -30,8 +37,70 @@ void task_init() {
     //     - sp 设置为该线程申请的物理页的高地址
 
     /* YOUR CODE HERE */
+    for(int i = 1; i < NR_TASKS; i++) {
+        task[i] = (struct task_struct *)kalloc();
+        task[i]->state = TASK_RUNNING;
+        task[i]->priority = PRIORITY_MIN + rand() % (PRIORITY_MAX - PRIORITY_MIN + 1);
+        task[i]->counter = 0;
+        task[i]->pid = i;
+        task[i]->thread.ra = (uint64_t)__dummy;
+        task[i]->thread.sp = (uint64_t)task[i] + PGSIZE;
+        printk("task[%d]: priority = %d\n", i, task[i]->priority);
+    }
 
     printk("...task_init done!\n");
+}
+
+extern void __switch_to(struct thread_struct *prev, struct thread_struct *next);
+
+void switch_to(struct task_struct *next) {
+    if (current != next) {
+        struct task_struct *prev = current;
+        current = next;
+        __switch_to(&(prev->thread), &(next->thread));
+        // printk("switch_to: current->pid = %d, next->pid = %d\n", current->pid, next->pid);
+    }
+}
+
+void do_timer() {
+    if (current->pid == 0 || current->counter == 0) {
+        schedule();
+    } else {
+        --(current->counter);
+        if(current->counter > 0) {
+            return;
+        }
+        schedule();
+    }
+}
+
+void schedule() {
+    struct task_struct *next = NULL;
+    int max_counter = 0;
+
+    for (int i = 1; i < NR_TASKS; i++) {
+        if (task[i] && task[i]->state == TASK_RUNNING) {
+            if (task[i]->counter > max_counter) {
+                max_counter = task[i]->counter;
+                next = task[i];
+            }
+        }
+    }
+
+    if (max_counter == 0) {
+        for (int i = 0; i < NR_TASKS; i++) {
+            if (task[i] && task[i]->state == TASK_RUNNING) {
+                task[i]->counter = task[i]->priority;
+            }
+        }
+        schedule();
+        return;
+    }
+
+    if (next && next != current) {
+        // printk("schedule: current->pid = %d, next->pid = %d\n", current->pid, next->pid);
+        switch_to(next);
+    }
 }
 
 #if TEST_SCHED

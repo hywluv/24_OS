@@ -14,7 +14,6 @@ void *kalloc() {
 
     r = kmem.freelist;
     kmem.freelist = r->next;
-    
     memset((void *)r, 0x0, PGSIZE);
     return (void *)r;
 }

@@ -5,12 +5,13 @@ LD		:=	$(CROSS)ld
 OBJCOPY	:=	$(CROSS)objcopy
 OBJDUMP	:=	$(CROSS)objdump
 
-ISA		:=	rv64imafd
+ISA     :=  rv64imafd_zifencei
 ABI		:=	lp64
 
 INCLUDE	:=	-I $(shell pwd)/include -I $(shell pwd)/arch/riscv/include
-CF		:=	-march=$(ISA) -mabi=$(ABI) -mcmodel=medany -fno-builtin -ffunction-sections -fdata-sections -nostartfiles -nostdlib -nostdinc -static -lgcc -Wl,--nmagic -Wl,--gc-sections -g 
-CFLAG	:=	$(CF) $(INCLUDE)
+CF		:=	-march=$(ISA) -mabi=$(ABI) -mcmodel=medany -fno-builtin -ffunction-sections -fdata-sections -nostartfiles -nostdlib -nostdinc -static -lgcc -Wl,--nmagic -Wl,--gc-sections -g, -fno-pie
+TEST_SCHED	:=	0 
+CFLAG	:=	$(CF) $(INCLUDE) -DTEST_SCHED=$(TEST_SCHED)
 
 .PHONY:all run debug clean
 all: clean

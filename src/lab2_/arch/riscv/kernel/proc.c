@@ -98,7 +98,6 @@ void schedule() {
     }
 
     if (next && next != current) {
-        // printk("schedule: current->pid = %d, next->pid = %d\n", current->pid, next->pid);
         switch_to(next);
     }
 }

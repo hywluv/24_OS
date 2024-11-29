@@ -2,6 +2,7 @@
 #define __MM_H__
 
 #include "stdint.h"
+#include "vm.h"
 
 struct run {
     struct run *next;

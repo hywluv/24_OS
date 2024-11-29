@@ -30,11 +30,26 @@
 
 // lab3
 #define OPENSBI_SIZE (0x200000)
+#define EARLY_PGSIZE (1 << 30)
 
 #define VM_START (0xffffffe000000000)
 #define VM_END (0xffffffff00000000)
 #define VM_SIZE (VM_END - VM_START)
 
 #define PA2VA_OFFSET (VM_START - PHY_START)
+#define PA2VA(pa) (((uintptr_t)(pa) + (uint64_t)PA2VA_OFFSET))
+#define VA2PA(va) (((uintptr_t)(va) - (uint64_t)PA2VA_OFFSET))
+
+#define PTE_V (1 << 0)
+#define PTE_R (1 << 1)
+#define PTE_W (1 << 2)
+#define PTE_X (1 << 3)
+#define PTE_U (1 << 4)
+#define PTE_G (1 << 5)
+#define PTE_A (1 << 6)
+#define PTE_D (1 << 7)
+#define PTE_ISVALID(pte) ((pte) & PTE_V)
+
+#define SV39 (8L)
 
 #endif

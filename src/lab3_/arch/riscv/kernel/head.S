@@ -1,14 +1,18 @@
     .extern start_kernel
     .extern mm_init
     .extern task_init
-    .extern dummy
+    .extern setup_vm_final
+    .extern vm_init
     .section .text.init
     .globl _start
 _start:
     #implement
     la sp, boot_stack_top # initialize stack
 
+    call setup_vm
+    call realocate
     call mm_init
+    call setup_vm_final
     call task_init
 
     la t0, _traps # load traps
@@ -28,7 +32,32 @@ _start:
     csrs sstatus, t0 # enable global interrupt
 
     call start_kernel # jump to start_kernel
-    j _start # loop
+
+realocate:
+    # set ra = ra + PA2VA_OFFSET
+    # set sp = sp + PA2VA_OFFSET (If you have set the sp before)
+
+    li t2, 0xffffffe000000000
+    li t3, 0x80000000
+    sub t1, t2, t3
+    add ra, ra, t1
+    add sp, sp, t1
+
+    # set satp with early_pgtbl
+
+    la t0, early_pgtbl
+    srli t0, t0, 12
+    li t1, (8 << 60)
+    or t0, t0, t1
+    csrw satp, t0
+
+    # flush tlb
+    sfence.vma zero, zero
+
+    # flush icache
+    fence.i
+
+    ret
 
     .section .bss.stack
     .globl boot_stack

@@ -57,18 +57,19 @@ void setup_vm_final() {
     uint64_t kernel_start = v_base;
     uint64_t kernel_end = PGROUNDUP((uint64_t)_etext);
     create_mapping(swapper_pg_dir, kernel_start, VA2PA(kernel_start), kernel_end - kernel_start, PTE_V | PTE_R | PTE_X);
+    printk("kernel_start = %lx, kernel_end = %lx, perm = %lx\n\n", kernel_start, kernel_end, PTE_V | PTE_R | PTE_X);
 
     // mapping kernel rodata -|-|R|V
     uint64_t rodata_start = kernel_end;
     uint64_t rodata_end = PGROUNDUP((uint64_t)_erodata);
     create_mapping(swapper_pg_dir, rodata_start, VA2PA(rodata_start), rodata_end - rodata_start, PTE_V | PTE_R);
-    printk("rodata_start = %lx, rodata_end = %lx\n", rodata_start, rodata_end);
+    printk("rodata_start = %lx, rodata_end = %lx, perm = %lx\n\n", rodata_start, rodata_end, PTE_V | PTE_R);
 
     // mapping other memory -|W|R|V
     uint64_t data_start = rodata_end;
     uint64_t data_end = v_end;
     create_mapping(swapper_pg_dir, data_start, VA2PA(data_start), data_end - data_start, PTE_V | PTE_R | PTE_W);
-    printk("data_start = %lx, data_end = %lx\n", data_start, data_end);
+    printk("data_start = %lx, data_end = %lx, perm = %lx\n\n", data_start, data_end, PTE_V | PTE_R | PTE_W);
 
     // set satp with swapper_pg_dir
     uint64_t satp = get_satp(swapper_pg_dir); // TODO

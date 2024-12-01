@@ -10,7 +10,7 @@ _start:
     la sp, boot_stack_top # initialize stack
 
     call setup_vm
-    call realocate
+    call relocate
     call mm_init
     call setup_vm_final
     call task_init
@@ -33,7 +33,7 @@ _start:
 
     call start_kernel # jump to start_kernel
 
-realocate:
+relocate:
     # set ra = ra + PA2VA_OFFSET
     # set sp = sp + PA2VA_OFFSET (If you have set the sp before)
 
@@ -43,14 +43,20 @@ realocate:
     add ra, ra, t1
     add sp, sp, t1
 
+    # set stvec to va
+    # la t4, 1f
+    # add t4, t4, t1
+
     # set satp with early_pgtbl
 
     la t0, early_pgtbl
     srli t0, t0, 12
     li t1, (8 << 60)
     or t0, t0, t1
+    # csrw stvec, t4
     csrw satp, t0
 
+# 1:
     # flush tlb
     sfence.vma zero, zero
 

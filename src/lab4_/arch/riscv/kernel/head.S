@@ -28,8 +28,9 @@ _start:
     li a7, 0 # set eid to 0
     ecall # call sbi_set_timer
 
-    li t0, (1 << 1)
-    csrs sstatus, t0 # enable global interrupt
+    # sstatus[PIE]
+    # li t0, (1 << 1)
+    # csrs sstatus, t0 # enable global interrupt
 
     call start_kernel # jump to start_kernel
 

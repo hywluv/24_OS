@@ -118,14 +118,18 @@ void map_vm_final(uint64_t *pgtbl, uint64_t va, uint64_t pa, uint64_t perm){
     if(PTE_ISVALID(pte) == 0){
         pte = setup_pgtbl(pgtbl, idx1, PTE_V);
     }
+    // printk("pte1 = %lx\n", pte);
 
-    uint64_t *pgtbl2 = (uint64_t *)(((pte >> 10) << 12)); // VA
+    uint64_t *pgtbl2 = (uint64_t *)(((pte >> 10) << 12) + PA2VA_OFFSET); // VA
     uint64_t pte2 = pgtbl2[idx2];
     if(PTE_ISVALID(pte2) == 0){
         pte2 = setup_pgtbl(pgtbl2, idx2, PTE_V);
     }
+    // printk("pte2 = %lx\n", pte2);
 
-    uint64_t *pgtbl3 = (uint64_t *)(((pte2 >> 10) << 12));// VA
+    uint64_t *pgtbl3 = (uint64_t *)(((pte2 >> 10) << 12) + PA2VA_OFFSET);// VA
     perm = perm | PTE_V;
     pgtbl3[idx3] = (pa >> 12 << 10) | perm;
 }
+
+uint64_t* get_kernel_pgtbl() { return swapper_pg_dir; }

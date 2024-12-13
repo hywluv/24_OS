@@ -5,11 +5,21 @@
 _traps:
     # implement
 
+    csrr t0, sscratch
+    csrw sscratch, sp
+    mv sp, t0
+
+    bne sp, zero, 1f
+
+    csrr t0, sscratch
+    csrw sscratch, sp
+    mv sp, t0
+
     # 1. save 32 registers and sepc to stack
     # 2. call trap_handler
     # 3. restore sepc and 32 registers (x2(sp) should be restore last) from stack
     # 4. return from trap
-
+1:
     addi sp, sp, -33*8
     sd ra, 0*8(sp)
     sd t0, 1*8(sp)
@@ -43,13 +53,18 @@ _traps:
     sd tp, 29*8(sp)
     csrr t0, sepc
     sd t0, 30*8(sp)
-    sd sp, 31*8(sp)
+    csrr t0, sstatus
+    sd t0, 31*8(sp)
+    sd sp, 32*8(sp)
 
     csrr a0, scause
     csrr a1, sepc
+    mv a2, sp
     call trap_handler
 
-    ld sp, 31*8(sp)
+    ld sp, 32*8(sp)
+    ld t0, 31*8(sp)
+    csrw sstatus, t0
     ld t0, 30*8(sp)
     csrw sepc, t0
     ld ra, 0*8(sp)
@@ -83,12 +98,25 @@ _traps:
     ld gp, 28*8(sp)
     ld tp, 29*8(sp)
     addi sp, sp, 33*8
+
+    csrr t0, sscratch
+    csrw sscratch, sp
+    mv sp, t0
+
+    bne sp, zero, 1f
+
+    csrr t0, sscratch
+    csrw sscratch, sp
+    mv sp, t0
+
+1:
     sret
 
     .globl __dummy
 __dummy:
-    la t0, dummy
-    csrw sepc, t0
+    add t0, sp, zero
+    csrr sp, sscratch
+    csrw sscratch, t0
     sret
 
 .globl __switch_to
@@ -109,6 +137,16 @@ __switch_to:
     sd s9, 88(a0)
     sd s10, 96(a0)
     sd s11, 104(a0)
+
+    csrr t0, sepc
+    sd t0, 112(a0)
+
+    csrr t0, sstatus
+    sd t0, 120(a0)
+
+    csrr t0, sscratch
+    sd t0, 128(a0)
+
     # restore state from next process
     # YOUR CODE HERE
     ld ra, 0(a1)
@@ -125,4 +163,19 @@ __switch_to:
     ld s9, 88(a1)
     ld s10, 96(a1)
     ld s11, 104(a1)
+
+    ld t0, 112(a1)
+    csrw sepc, t0
+
+    ld t0, 120(a1)
+    csrw sstatus, t0
+
+    ld t0, 128(a1)
+    csrw sscratch, t0
+
+    csrw satp, a2
+
+    sfence.vma zero, zero
+    fence.i
+
     ret

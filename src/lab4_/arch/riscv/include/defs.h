@@ -52,4 +52,16 @@
 
 #define SV39 (8L)
 
+// lab4
+
+#define USER_START (0x0000000000000000) // user space start virtual address
+#define USER_END (0x0000004000000000) // user space end virtual address
+
+#define SSTATUS_SPIE (1L << 5)
+#define SSTATUS_SUM (1L << 18)
+#define SSTATUS_SPP (1L << 8)
+
+#define ECALL_FROM_U_MODE 0x8
+
+
 #endif

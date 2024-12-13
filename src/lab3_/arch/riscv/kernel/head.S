@@ -60,8 +60,8 @@ relocate:
     # flush tlb
     sfence.vma zero, zero
 
-    # flush icache
-    fence.i
+    # flush icache (included)
+    # fence.i
 
     ret
 

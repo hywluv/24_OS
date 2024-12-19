@@ -5,15 +5,19 @@
 _traps:
     # implement
 
-    csrr t0, sscratch
-    csrw sscratch, sp
-    mv sp, t0
+    # csrr t0, sscratch
+    # csrw sscratch, sp
+    # mv sp, t0
 
+    # bne sp, zero, 1f
+
+    # csrr t0, sscratch
+    # csrw sscratch, sp
+    # mv sp, t0
+
+    csrrw sp, sscratch, sp
     bne sp, zero, 1f
-
-    csrr t0, sscratch
-    csrw sscratch, sp
-    mv sp, t0
+    csrrw sp, sscratch, sp
 
     # 1. save 32 registers and sepc to stack
     # 2. call trap_handler
@@ -99,15 +103,19 @@ _traps:
     ld tp, 29*8(sp)
     addi sp, sp, 33*8
 
-    csrr t0, sscratch
-    csrw sscratch, sp
-    mv sp, t0
+    # csrr t0, sscratch
+    # csrw sscratch, sp
+    # mv sp, t0
 
+    # bne sp, zero, 1f
+
+    # csrr t0, sscratch
+    # csrw sscratch, sp
+    # mv sp, t0
+
+    csrrw sp, sscratch, sp
     bne sp, zero, 1f
-
-    csrr t0, sscratch
-    csrw sscratch, sp
-    mv sp, t0
+    csrrw sp, sscratch, sp
 
 1:
     sret

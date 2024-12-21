@@ -22,6 +22,9 @@ void setup_vm_final();
 uint64_t get_satp(uint64_t *pgtbl);
 void create_mapping(uint64_t *pgtbl, uint64_t va, uint64_t pa, uint64_t sz, uint64_t perm);
 void map_vm_final(uint64_t *pgtbl, uint64_t va, uint64_t pa, uint64_t perm);
-void map_final_pgtbl(uint64_t* pgtbl, uint64_t va, uint64_t pa, uint64_t perm);
 uint64_t *get_kernel_pgtbl();
+uint64_t vmflags2pte(uint64_t vm_flags);
+uint64_t get_pte(uint64_t *pgtbl, uint64_t va);
+int va_mapped(uint64_t *pgtbl, uint64_t va);
+
 #endif

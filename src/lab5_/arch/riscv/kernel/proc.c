@@ -9,10 +9,16 @@
 struct task_struct *idle;           // idle process
 struct task_struct *current;        // 指向当前运行线程的 task_struct
 struct task_struct *task[NR_TASKS]; // 线程数组，所有的线程都保存在此
+int nr_tasks = 0;                   // 当前线程数
 
 extern void __dummy();
 extern char _sramdisk[];
 extern char _eramdisk[];
+
+int get_nr_tasks()
+{
+    return nr_tasks;
+}
 
 struct task_struct *get_current_proc()
 {
@@ -27,11 +33,14 @@ void set_user_pgtbl(struct task_struct *T)
 
     printk("set_user_pgtbl: T->pgd = %p\n", T->pgd);
 
-    uint64_t user_perm = PTE_V | PTE_R | PTE_W | PTE_U;
-    uint64_t pa = VA2PA(alloc_page());
-    uint64_t va = USER_END - PGSIZE;
-    printk("set_user_pgtbl: va = %lx, pa = %lx\n", va, pa);
-    create_mapping(T->pgd, va, pa, PGSIZE, user_perm);
+    // uint64_t user_perm = PTE_V | PTE_R | PTE_W | PTE_U;
+    // uint64_t pa = VA2PA(alloc_page());
+    // uint64_t va = USER_END - PGSIZE;
+    // printk("set_user_pgtbl: va = %lx, pa = %lx\n", va, pa);
+    // create_mapping(T->pgd, va, pa, PGSIZE, user_perm);
+
+    // vma
+    do_mmap(&(T->mm), USER_END - PGSIZE, PGSIZE, 0, 0, VM_ANON | VM_READ | VM_WRITE);
     printk("set_user_pgtbl done\n");
 }
 
@@ -47,12 +56,14 @@ void load_program(struct task_struct *task)
             // alloc space and copy content
             uint64_t align_offset = phdr->p_vaddr % PGSIZE;
             uint64_t num_pg = (phdr->p_memsz + align_offset + PGSIZE - 1) / PGSIZE;
-            uint64_t *new_pgs = (uint64_t *)alloc_pages(num_pg);
-            memcpy((void *)((uint64_t)new_pgs + align_offset), _sramdisk + phdr->p_offset, phdr->p_filesz);
-            memset((void *)((uint64_t)new_pgs + align_offset + phdr->p_filesz), 0x0, phdr->p_memsz - phdr->p_filesz);
+            // uint64_t *new_pgs = (uint64_t *)alloc_pages(num_pg);
+            // memcpy((void *)((uint64_t)new_pgs + align_offset), _sramdisk + phdr->p_offset, phdr->p_filesz);
+            // memset((void *)((uint64_t)new_pgs + align_offset + phdr->p_filesz), 0x0, phdr->p_memsz - phdr->p_filesz);
             // do mapping
-            create_mapping(task->pgd, phdr->p_vaddr - align_offset, VA2PA((uint64_t)new_pgs), phdr->p_memsz + align_offset, PTE_U | PTE_X | phdr->p_flags);
-            printk("[load_program] va = %lx, pa = %lx, sz = %lx, perm = %lx\n", phdr->p_vaddr - align_offset, (uint64_t)new_pgs - PA2VA_OFFSET, phdr->p_memsz + align_offset, PTE_U | PTE_X | phdr->p_flags);
+            // create_mapping(task->pgd, phdr->p_vaddr - align_offset, VA2PA((uint64_t)new_pgs), phdr->p_memsz + align_offset, PTE_U | PTE_X | phdr->p_flags);
+            // printk("[load_program] va = %lx, pa = %lx, sz = %lx, perm = %lx\//n", phdr->p_vaddr - align_offset, (uint64_t)new_pgs - PA2VA_OFFSET, phdr->p_memsz + align_offset, PTE_U | PTE_X | phdr->p_flags);
+            // vma
+            do_mmap(&(task->mm), phdr->p_vaddr, phdr->p_memsz, phdr->p_offset, phdr->p_filesz, VM_READ | VM_WRITE | VM_EXEC);
             // code...
         }
     }
@@ -87,7 +98,7 @@ void task_init()
     //     - sp 设置为该线程申请的物理页的高地址
 
     /* YOUR CODE HERE */
-    for (int i = 1; i < NR_TASKS; i++)
+    for (int i = 1; i < 2; i++)
     {
         task[i] = (struct task_struct *)kalloc();
         task[i]->state = TASK_RUNNING;
@@ -113,11 +124,16 @@ void task_init()
         task[i]->thread.sscratch = USER_END;
         printk("task[%d]: priority = %d\n", i, task[i]->priority);
     }
+    nr_tasks = 2;
+
+    for(int i = 2; i < NR_TASKS; i++){
+        task[i] = NULL;
+    }
 
     printk("...task_init done!\n");
 }
 
-extern void __switch_to(struct thread_struct *prev, struct thread_struct *next, uint64_t *pgtbl);
+extern void __switch_to(struct thread_struct *prev, struct thread_struct *next, uint64_t satp);
 
 void switch_to(struct task_struct *next)
 {
@@ -154,7 +170,7 @@ void schedule()
     struct task_struct *next = NULL;
     int max_counter = 0;
 
-    for (int i = 1; i < NR_TASKS; i++)
+    for (int i = 1; i < nr_tasks; i++)
     {
         if (task[i] && task[i]->state == TASK_RUNNING)
         {
@@ -168,7 +184,7 @@ void schedule()
 
     if (max_counter == 0)
     {
-        for (int i = 0; i < NR_TASKS; i++)
+        for (int i = 0; i < nr_tasks; i++)
         {
             if (task[i] && task[i]->state == TASK_RUNNING)
             {
@@ -185,6 +201,76 @@ void schedule()
         switch_to(next);
     }
 }
+
+/*
+* @mm       : current thread's mm_struct
+* @addr     : the va to look up
+*
+* @return   : the VMA if found or NULL if not found
+*/
+struct vm_area_struct *find_vma(struct mm_struct *mm, uint64_t addr){
+    struct vm_area_struct *vma = mm->mmap;
+    while(vma){
+        if(addr >= vma->vm_start && addr < vma->vm_end){
+            return vma;
+        }
+        vma = vma->vm_next;
+    }
+    return NULL;
+}
+
+/*
+* @mm       : current thread's mm_struct
+* @addr     : the va to map
+* @len      : memory size to map
+* @vm_pgoff : phdr->p_offset
+* @vm_filesz: phdr->p_filesz
+* @flags    : flags for the new VMA
+*
+* @return   : start va
+*/
+uint64_t do_mmap(struct mm_struct *mm, uint64_t addr, uint64_t len, uint64_t vm_pgoff, uint64_t vm_filesz, uint64_t flags){
+    uint64_t start = addr;
+    uint64_t end = addr + len;
+    struct vm_area_struct *vma = mm->mmap;
+    struct vm_area_struct *prev = NULL;
+    while(vma){
+        if(end <= vma->vm_start){
+            break;
+        }
+        prev = vma;
+        vma = vma->vm_next;
+    }
+    struct vm_area_struct *new_vma = (struct vm_area_struct *)kalloc();
+    new_vma->vm_mm = mm;
+    new_vma->vm_start = start;
+    new_vma->vm_end = end;
+    new_vma->vm_flags = flags;
+    new_vma->vm_pgoff = vm_pgoff;
+    new_vma->vm_filesz = vm_filesz;
+    if(prev){
+        prev->vm_next = new_vma;
+        new_vma->vm_prev = prev;
+    }else{
+        mm->mmap = new_vma;
+    }
+    new_vma->vm_next = vma;
+    if(vma){
+        vma->vm_prev = new_vma;
+    }
+    return start;
+}
+
+int add_task(struct task_struct *T)
+{
+    if (nr_tasks >= NR_TASKS)
+    {
+        return -1;
+    }
+    task[nr_tasks++] = T;
+    return nr_tasks - 1;
+}
+
 
 #if TEST_SCHED
 #define MAX_OUTPUT ((NR_TASKS - 1) * 10)

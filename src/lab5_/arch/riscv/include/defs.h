@@ -63,5 +63,28 @@
 
 #define ECALL_FROM_U_MODE 0x8
 
+// lab5 
+#define Err(format, ...) {                              \
+    printk("\33[1;31m[%s,%d,%s] " format "\33[0m\n",    \
+        __FILE__, __LINE__, __func__, ## __VA_ARGS__);  \
+    while(1);                                           \
+}
+
+#define Warning(format, ...) \
+    printk("\33[1;33m[%s,%d,%s] " format "\33[0m\n", \
+        __FILE__, __LINE__, __func__, ## __VA_ARGS__)
+
+#define Log(format, ...) \
+    printk("\33[1;35m[%s,%d,%s] " format "\33[0m\n", \
+        __FILE__, __LINE__, __func__, ## __VA_ARGS__)
+
+#define VM_ANON 0x1
+#define VM_READ 0x2
+#define VM_WRITE 0x4
+#define VM_EXEC 0x8
+
+#define INST_PAGE_FAULT 0x0c
+#define LOAD_PAGE_FAULT 0x0d
+#define STORE_PAGE_FAULT 0x0f
 
 #endif

@@ -66,6 +66,9 @@ _traps:
     mv a2, sp
     call trap_handler
 
+    .globl __ret_from_fork
+__ret_from_fork:
+
     ld sp, 32*8(sp)
     ld t0, 31*8(sp)
     csrw sstatus, t0

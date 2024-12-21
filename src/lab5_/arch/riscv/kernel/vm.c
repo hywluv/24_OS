@@ -91,6 +91,10 @@ uint64_t get_satp(uint64_t *pgtbl){
     return (SV39 << 60) | (pa_pgtbl >> 12);
 }
 
+uint64_t vmflags2pte(uint64_t vm_flags){
+    return ((vm_flags & VM_READ) ? PTE_R : 0) | ((vm_flags & VM_WRITE) ? PTE_W : 0) | ((vm_flags & VM_EXEC) ? PTE_X : 0);
+}
+
 /* 创建多级页表映射关系 */
 /* 不要修改该接口的参数和返回值 */
 void create_mapping(uint64_t *pgtbl, uint64_t va, uint64_t pa, uint64_t sz, uint64_t perm) {
@@ -133,3 +137,28 @@ void map_vm_final(uint64_t *pgtbl, uint64_t va, uint64_t pa, uint64_t perm){
 }
 
 uint64_t* get_kernel_pgtbl() { return swapper_pg_dir; }
+
+uint64_t get_pte(uint64_t *pgtbl, uint64_t va){
+    uint64_t idx1 = (va >> 30) & 0x1FF;
+    uint64_t idx2 = (va >> 21) & 0x1FF;
+    uint64_t idx3 = (va >> 12) & 0x1FF;
+
+    uint64_t pte = pgtbl[idx1];
+    if(PTE_ISVALID(pte) == 0){
+        return 0;
+    }
+
+    uint64_t *pgtbl2 = (uint64_t *)(((pte >> 10) << 12) + PA2VA_OFFSET);
+    uint64_t pte2 = pgtbl2[idx2];
+    if(PTE_ISVALID(pte2) == 0){
+        return 0;
+    }
+
+    uint64_t *pgtbl3 = (uint64_t *)(((pte2 >> 10) << 12) + PA2VA_OFFSET);
+    return pgtbl3[idx3];
+}
+
+int va_mapped(uint64_t *pgtbl, uint64_t va){
+    uint64_t pte = get_pte(pgtbl, va);
+    return PTE_ISVALID(pte);
+}

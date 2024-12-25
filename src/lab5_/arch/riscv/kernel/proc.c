@@ -44,6 +44,11 @@ void set_user_pgtbl(struct task_struct *T)
     printk("set_user_pgtbl done\n");
 }
 
+uint64_t pteflags2vmflags(uint64_t pte_flags)
+{
+    return ((pte_flags & PTE_R) ? VM_READ : 0) | ((pte_flags & PTE_W) ? VM_WRITE : 0) | ((pte_flags & PTE_X) ? VM_EXEC : 0);
+}
+
 void load_program(struct task_struct *task)
 {
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)_sramdisk;
@@ -63,7 +68,7 @@ void load_program(struct task_struct *task)
             // create_mapping(task->pgd, phdr->p_vaddr - align_offset, VA2PA((uint64_t)new_pgs), phdr->p_memsz + align_offset, PTE_U | PTE_X | phdr->p_flags);
             // printk("[load_program] va = %lx, pa = %lx, sz = %lx, perm = %lx\//n", phdr->p_vaddr - align_offset, (uint64_t)new_pgs - PA2VA_OFFSET, phdr->p_memsz + align_offset, PTE_U | PTE_X | phdr->p_flags);
             // vma
-            do_mmap(&(task->mm), phdr->p_vaddr, phdr->p_memsz, phdr->p_offset, phdr->p_filesz, VM_READ | VM_WRITE | VM_EXEC);
+            do_mmap(&(task->mm), phdr->p_vaddr, phdr->p_memsz, phdr->p_offset, phdr->p_filesz, pteflags2vmflags(phdr->p_flags) | VM_EXEC);
             // code...
         }
     }

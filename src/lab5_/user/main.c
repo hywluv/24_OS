@@ -104,14 +104,16 @@ int main() {
     placeholder[4107] = '\0';
 
     pid = fork();
-
+    Log("[test] string is stored at %p", &placeholder[4096]);
     if (pid == 0) {
+        Log("[U-CHILD] test");
         printf("[U-CHILD] pid: %ld is running! Message: %s\n", getpid(), &placeholder[4096]);
         while (1) {
             printf("[U-CHILD] pid: %ld is running! global_variable: %d\n", getpid(), global_variable++);
             wait(WAIT_TIME);
         } 
     } else {
+        Log("[U-PARENT] test");
         printf("[U-PARENT] pid: %ld is running! Message: %s\n", getpid(), &placeholder[4096]);
         while (1) {
             printf("[U-PARENT] pid: %ld is running! global_variable: %d\n", getpid(), global_variable++);

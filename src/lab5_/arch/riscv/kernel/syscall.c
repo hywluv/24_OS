@@ -53,6 +53,11 @@ uint64_t do_fork(struct pt_regs *regs)
     child_regs->sp = child_task->thread.sp;
     child_regs->sepc += 4;
 
+    // info
+    Log("fork: from [%d] to [%d]", get_current_proc()->pid, child_task->pid);
+    // Log("[p] user stack: %p, kernel stack: %p", regs->sp, csr_read(sscratch));
+    // Log("[c] user stack: %p, kernel stack: %p", child_regs->sp, csr_read(sscratch));
+
     return add_task(child_task);
 }
 
